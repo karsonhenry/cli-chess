@@ -43,6 +43,11 @@ def setup_argparse() -> ArgumentParser:
         action="store_true"
     )
     parser.add_argument(
+        "--no-save-pgn",
+        help="Don't save PGNs for this session",
+        action="store_true"
+    )
+    parser.add_argument(
         "-v", "--version",
         action="version",
         version=f"cli-chess v{package_version}",

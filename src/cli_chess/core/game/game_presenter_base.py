@@ -6,7 +6,7 @@ from cli_chess.modules.material_difference import MaterialDifferencePresenter
 from cli_chess.modules.player_info import PlayerInfoPresenter
 from cli_chess.modules.clock import ClockPresenter
 from cli_chess.modules.premove import PremovePresenter
-from cli_chess.utils import log, AlertType, RequestSuccessfullySent, EventTopics, save_game_pgn
+from cli_chess.utils import log, AlertType, RequestSuccessfullySent, EventTopics, save_game_pgn, get_pgn_save_mode
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -54,6 +54,7 @@ class PlayableGamePresenterBase(GamePresenterBase, ABC):
     def __init__(self, model: PlayableGameModelBase):
         self.premove_presenter = PremovePresenter(model.premove_model)
         self._game_over_handled = False
+        self._waiting_on_pgn_answer = False  # for ask mode
         super().__init__(model)
         self.model = model
 
@@ -67,6 +68,7 @@ class PlayableGamePresenterBase(GamePresenterBase, ABC):
         super().update(*args, **kwargs)
         if EventTopics.GAME_START in args:
             self._game_over_handled = False
+            self._waiting_on_pgn_answer = False
         # Guarded too, otherwise the (MOVE_MADE, GAME_END) event that follows a
         # checkmate clears the result off the screen
         if EventTopics.MOVE_MADE in args and not self._game_over_handled:
@@ -84,6 +86,10 @@ class PlayableGamePresenterBase(GamePresenterBase, ABC):
            move input, or game actions (such as resign)
         """
         try:
+            if self._waiting_on_pgn_answer and not self.model.game_in_progress:
+                self._handle_pgn_save_answer(inpt)
+                return
+
             inpt_lower = inpt.lower()
             if inpt_lower == "resign" or inpt_lower == "quit" or inpt_lower == "exit":
                 self.resign()
@@ -147,15 +153,58 @@ class PlayableGamePresenterBase(GamePresenterBase, ABC):
     def is_game_in_progress(self) -> bool:
         return self.model.game_in_progress
 
+    def _is_online_game(self) -> bool:
+        """Returns True if online game"""
+        if self.model.game_metadata.game_id is not None:
+            return True
+        else:
+            return False
+
     def _save_pgn(self) -> None:
+        """Saves pgn based on the save mode"""
+        try:
+            is_online = self._is_online_game()
+            save_mode = get_pgn_save_mode(is_online)
+
+            if save_mode == "never":
+                log.debug("Skipping PGN save: save mode is set to never")
+                return
+            elif save_mode == "ask":
+                self._ask_to_save_pgn()
+            elif save_mode == "always":
+                self._write_pgn()
+            else:
+                log.error(f"Unknown PGN save mode ({save_mode}), saving anyway")
+                self._write_pgn()
+        except Exception as e:
+            log.error(f"Unexpected error saving PGN: {e}")
+
+    def _write_pgn(self) -> None:
         """Save PGN to save locaton and print path on screen"""
         try:
-            is_online = self.model.game_metadata.game_id is not None
+            is_online = self._is_online_game()
             path = save_game_pgn(self.model.board_model, self.model.game_metadata, is_online=is_online)
             if path:
                 self.view.alert.append_alert(f"Game saved: {path}")
         except Exception as e:
             log.error(f"Unexpected error saving PGN: {e}")
+
+    def _ask_to_save_pgn(self) -> None:
+        """Asks user if they want to save"""
+        if not self.model.board_model.board.move_stack:
+            # no moves
+            log.debug("Skipping PGN save prompt: no moves were played")
+            return
+
+        self._waiting_on_pgn_answer = True
+        self.view.alert.append_alert("Save this game? Type 'save' to keep the PGN or 'discard' to skip it")
+
+    def _handle_pgn_save_answer(self, answer: str) -> None:
+        """Handles save prompt answer"""
+        if answer == "save":
+            self._write_pgn()
+        elif answer == "discard":
+            self.view.alert.show_alert("Game not saved")
 
     @abstractmethod
     def is_vs_ai(self) -> bool:
