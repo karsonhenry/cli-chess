@@ -77,13 +77,14 @@ def test_set_save_mode_ignores_invalid_values(pgn_cfg):
     assert pgn_cfg.get_save_mode(is_online=False) == "never"
 
 
-@pytest.mark.parametrize("save_mode", ["always", "ask", "never"])
-def test_get_pgn_save_mode_returns_config_value(pgn_cfg, save_mode):
-    pgn_cfg.set_save_mode(is_online=False, save_mode=save_mode)
-    pgn_cfg.set_save_mode(is_online=True, save_mode=save_mode)
+def test_get_pgn_save_mode_returns_config_value(pgn_cfg):
+    # try all 3 modes
+    for save_mode in ["always", "ask", "never"]:
+        pgn_cfg.set_save_mode(is_online=False, save_mode=save_mode)
+        pgn_cfg.set_save_mode(is_online=True, save_mode=save_mode)
 
-    assert pgn.get_pgn_save_mode(is_online=False) == save_mode
-    assert pgn.get_pgn_save_mode(is_online=True) == save_mode
+        assert pgn.get_pgn_save_mode(is_online=False) == save_mode
+        assert pgn.get_pgn_save_mode(is_online=True) == save_mode
 
 
 def test_get_pgn_save_mode_uses_correct_game_type(pgn_cfg):

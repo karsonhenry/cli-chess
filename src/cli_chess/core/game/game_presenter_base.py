@@ -197,14 +197,24 @@ class PlayableGamePresenterBase(GamePresenterBase, ABC):
             return
 
         self._waiting_on_pgn_answer = True
-        self.view.alert.append_alert("Save this game? Type 'save' to keep the PGN or 'discard' to skip it")
+        self.view.alert.append_alert("Save this game? Type 'y' or 'save' to keep it, or 'n' or 'discard' to skip it")
 
     def _handle_pgn_save_answer(self, answer: str) -> None:
         """Handles save prompt answer"""
-        if answer == "save":
+        answer_lower = answer.strip().lower()
+
+        if answer_lower == "save" or answer_lower == "yes" or answer_lower == "y":
+            self._waiting_on_pgn_answer = False
             self._write_pgn()
-        elif answer == "discard":
-            self.view.alert.show_alert("Game not saved")
+        elif answer_lower == "discard" or answer_lower == "no" or answer_lower == "n":
+            self._waiting_on_pgn_answer = False
+            self.view.alert.append_alert("Game not saved")
+        elif answer_lower == "exit" or answer_lower == "quit":
+            self._waiting_on_pgn_answer = False
+            self.exit()
+        else:
+            # didnt understand it so keep waiting
+            log.debug(f"Unknown answer to save prompt: {answer}")
 
     @abstractmethod
     def is_vs_ai(self) -> bool:

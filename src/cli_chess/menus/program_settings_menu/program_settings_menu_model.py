@@ -20,8 +20,18 @@ class ProgramSettingsMenuModel(MultiValueMenuModel):
             MultiValueMenuOption(game_config.Keys.SHOW_MATERIAL_DIFF_IN_UNICODE, "", self._get_available_game_config_options(game_config.Keys.SHOW_MATERIAL_DIFF_IN_UNICODE), display_name="Unicode material difference"),  # noqa: E501
             MultiValueMenuOption(game_config.Keys.PAD_UNICODE, "", self._get_available_game_config_options(game_config.Keys.PAD_UNICODE), display_name="Pad unicode (fix overlap)"),  # noqa: E501
             MultiValueMenuOption(terminal_config.Keys.TERMINAL_COLOR_DEPTH, "", self._get_available_color_depth_options(), display_name="Terminal color depth"),  # noqa: E501
-            MultiValueMenuOption(pgn_config.Keys.OFFLINE_SAVE_MODE, "", self._get_available_pgn_save_mode_options(is_online=False), display_name="Save offline game PGNs"),
-            MultiValueMenuOption(pgn_config.Keys.ONLINE_SAVE_MODE, "", self._get_available_pgn_save_mode_options(is_online=True), display_name="Save online game PGNs"),
+            MultiValueMenuOption(
+                pgn_config.Keys.OFFLINE_SAVE_MODE,
+                "",
+                self._get_available_pgn_save_mode_options(is_online=False),
+                display_name="Save offline game PGNs",
+            ),
+            MultiValueMenuOption(
+                pgn_config.Keys.ONLINE_SAVE_MODE,
+                "",
+                self._get_available_pgn_save_mode_options(is_online=True),
+                display_name="Save online game PGNs",
+            ),
         ]
         return MenuCategory("Program Settings", menu_options)
 

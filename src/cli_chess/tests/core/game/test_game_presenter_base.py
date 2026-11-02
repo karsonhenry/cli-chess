@@ -138,10 +138,83 @@ def test_ask_save_mode_answer_save(presenter, save_spy, tmp_path, monkeypatch):
     assert presenter._waiting_on_pgn_answer is False
 
 
-def test_ask_save_mode_answer_discard(presenter, save_spy, tmp_path, monkeypatch):
+def start_ask_prompt(presenter, monkeypatch):
     set_save_mode(monkeypatch, "ask")
     presenter.model.board_model.make_move("e4")
     presenter.model.board_model.handle_resignation(WHITE)
+
+
+def test_ask_save_mode_answer_y(presenter, save_spy, tmp_path, monkeypatch):
+    start_ask_prompt(presenter, monkeypatch)
+    presenter.user_input_received("y")
+
+    assert save_spy.call_count == 1
+    assert len(list(tmp_path.iterdir())) == 1
+    assert presenter._waiting_on_pgn_answer is False
+
+
+def test_ask_save_mode_answer_n(presenter, save_spy, tmp_path, monkeypatch):
+    start_ask_prompt(presenter, monkeypatch)
+    presenter.user_input_received("n")
+
+    assert save_spy.call_count == 0
+    assert len(list(tmp_path.iterdir())) == 0
+    assert "Game not saved" in presenter.view.alert._alert_label.text
+    assert presenter._waiting_on_pgn_answer is False
+
+
+def test_ask_save_mode_answer_caps(presenter, save_spy, tmp_path, monkeypatch):
+    start_ask_prompt(presenter, monkeypatch)
+    presenter.user_input_received(" YES ")
+
+    assert save_spy.call_count == 1
+    assert len(list(tmp_path.iterdir())) == 1
+    assert presenter._waiting_on_pgn_answer is False
+
+
+def test_ask_save_mode_exit(presenter, save_spy, monkeypatch):
+    start_ask_prompt(presenter, monkeypatch)
+    exit_spy = Mock()
+    monkeypatch.setattr(presenter, "exit", exit_spy)
+    presenter.user_input_received("exit")
+
+    assert exit_spy.call_count == 1
+    assert save_spy.call_count == 0
+    assert presenter._waiting_on_pgn_answer is False
+
+
+def test_ask_save_mode_quit(presenter, save_spy, monkeypatch):
+    start_ask_prompt(presenter, monkeypatch)
+    exit_spy = Mock()
+    monkeypatch.setattr(presenter, "exit", exit_spy)
+    presenter.user_input_received("quit")
+
+    assert exit_spy.call_count == 1
+    assert save_spy.call_count == 0
+    assert presenter._waiting_on_pgn_answer is False
+
+
+def test_ask_save_mode_random_answer_keeps_waiting(presenter, save_spy, monkeypatch):
+    start_ask_prompt(presenter, monkeypatch)
+    presenter.user_input_received("maybe")
+
+    assert save_spy.call_count == 0
+    assert presenter._waiting_on_pgn_answer is True
+
+
+def test_ask_save_mode_discard_keeps_game_over_message(presenter, save_spy, monkeypatch):
+    set_save_mode(monkeypatch, "ask")
+    for move in ("f3", "e5", "g4", "Qh4"):
+        presenter.model.board_model.make_move(move)
+    presenter.user_input_received("n")
+
+    assert "Checkmate" in presenter.view.alert._alert_label.text
+    assert "Game not saved" in presenter.view.alert._alert_label.text
+    assert save_spy.call_count == 0
+
+
+def test_ask_save_mode_answer_discard(presenter, save_spy, tmp_path, monkeypatch):
+    start_ask_prompt(presenter, monkeypatch)
     presenter.user_input_received("discard")
 
     assert save_spy.call_count == 0

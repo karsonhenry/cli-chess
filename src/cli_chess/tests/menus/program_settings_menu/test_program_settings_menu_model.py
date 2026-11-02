@@ -2,17 +2,19 @@ from cli_chess.menus.program_settings_menu import ProgramSettingsMenuModel
 from cli_chess.menus.program_settings_menu import program_settings_menu_model
 from cli_chess.utils.config import PgnConfig
 from unittest.mock import Mock
-import pytest
 
 
-@pytest.mark.parametrize("save_mode, display_name", [
-    ("always", "Always"),
-    ("ask", "Ask me"),
-    ("never", "Never"),
-])
-def test_pgn_save_mode_display_names(save_mode, display_name):
-    assert ProgramSettingsMenuModel.pgn_save_mode_to_display_name(save_mode) == display_name
-    assert ProgramSettingsMenuModel.pgn_display_name_to_save_mode(display_name) == save_mode
+def test_pgn_save_mode_to_display_name():
+    assert ProgramSettingsMenuModel.pgn_save_mode_to_display_name("always") == "Always"
+    assert ProgramSettingsMenuModel.pgn_save_mode_to_display_name("ask") == "Ask me"
+    assert ProgramSettingsMenuModel.pgn_save_mode_to_display_name("never") == "Never"
+
+
+def test_pgn_display_name_to_save_mode():
+    assert ProgramSettingsMenuModel.pgn_display_name_to_save_mode("Always") == "always"
+    assert ProgramSettingsMenuModel.pgn_display_name_to_save_mode("Ask me") == "ask"
+    assert ProgramSettingsMenuModel.pgn_display_name_to_save_mode("Never") == "never"
+
 
 def test_unknown_pgn_values_default_to_always():
     assert ProgramSettingsMenuModel.pgn_save_mode_to_display_name("???") == "Always"
