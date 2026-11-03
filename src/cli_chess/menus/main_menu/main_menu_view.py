@@ -15,7 +15,10 @@ if TYPE_CHECKING:
     from cli_chess.menus.main_menu import MainMenuPresenter
 
 package_metadata = metadata("cli-chess")
-github_page = package_metadata["Home-page"]
+github_page = package_metadata.get(
+    "Home-page",
+    "https://github.com/trb346/cli-chess",
+)
 
 
 class MainMenuView(MenuView):

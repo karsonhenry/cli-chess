@@ -1,7 +1,7 @@
 from __future__ import annotations
 from cli_chess.menus.program_settings_menu import ProgramSettingsMenuView
 from cli_chess.menus import MultiValueMenuPresenter
-from cli_chess.utils.config import TerminalConfig
+from cli_chess.utils.config import TerminalConfig, PgnConfig
 from cli_chess.utils.common import COLOR_DEPTH_MAP
 from cli_chess.utils.ui_common import set_color_depth
 from typing import TYPE_CHECKING
@@ -26,5 +26,11 @@ class ProgramSettingsMenuPresenter(MultiValueMenuPresenter):
             color_depth = list(COLOR_DEPTH_MAP.keys())[list(COLOR_DEPTH_MAP.values()).index(selected_value)]
             self.model.save_terminal_color_depth_setting(color_depth)
             set_color_depth(color_depth)
+        elif selected_option == PgnConfig.Keys.OFFLINE_SAVE_MODE:
+            save_mode = self.model.pgn_display_name_to_save_mode(selected_value)
+            self.model.save_pgn_save_mode_setting(False, save_mode)
+        elif selected_option == PgnConfig.Keys.ONLINE_SAVE_MODE:
+            save_mode = self.model.pgn_display_name_to_save_mode(selected_value)
+            self.model.save_pgn_save_mode_setting(True, save_mode)
         else:
             self.model.save_selected_game_config_setting(selected_option, selected_value == "Yes")

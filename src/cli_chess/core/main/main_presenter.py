@@ -3,7 +3,7 @@ from cli_chess.core.main.main_view import MainView
 from cli_chess.menus.main_menu import MainMenuModel, MainMenuPresenter
 from cli_chess.core.api.api_manager import required_token_scopes
 from cli_chess.modules.token_manager.token_manager_model import g_token_manager_model
-from cli_chess.utils import force_recreate_configs, print_program_config
+from cli_chess.utils import force_recreate_configs, print_program_config, set_skip_pgn_for_session
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from cli_chess.core.main import MainModel
@@ -36,6 +36,11 @@ class MainPresenter:
             if not g_token_manager_model.update_linked_account(args.token):
                 print(f"Invalid API token or missing required scopes. Scopes required: {required_token_scopes}")
                 exit(1)
+
+        if args.no_save_pgn:
+            set_skip_pgn_for_session(True)
+        else:
+            set_skip_pgn_for_session(False)
 
     def run(self):
         """Starts the main application"""

@@ -69,6 +69,24 @@ steps will only need to be run once as cli-chess will remember the API token.
 4. Highlight and copy the token
 5. Run cli-chess using the following command: `cli-chess --token ****` _(replace *'s with your API token)_
 
+## Saving games (PGN)
+
+By default cli-chess saves a PGN of every game you finish to the `games` folder inside the
+cli-chess config folder (`$HOME/.config/cli-chess/games/` for Linux and macOS and `$APPDATA/cli-chess/games/`
+for Windows). This can be changed under **Settings > Program Settings**:
+
+- **Save offline game PGNs**: games played against Fairy-Stockfish
+- **Save online game PGNs**: games played on Lichess
+
+Each one can be set to `Always`, `Ask me` (you'll be asked when the game ends), or `Never`.
+
+To save your games somewhere else, set `save_directory` under the `[pgn]` section of `config.ini`
+(e.g. `save_directory = ~/Documents/chess`). If that folder can't be used, cli-chess falls back to the
+default `games` folder.
+
+To skip saving for just one session without changing your settings, start cli-chess with
+`cli-chess --no-save-pgn`.
+
 ## Custom styling
 
 Nearly every component of cli-chess can be styled by overriding parts of the

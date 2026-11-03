@@ -342,7 +342,86 @@ class LichessConfig(SectionBase):
         super().set_key_value(self.section_name, key.name, value)
 
 
+class PgnConfig(SectionBase):
+    """Creates and manages the pgn configs. Default appears to appends to the default config."""
+    # save modes, always is default
+    SAVE_MODE_ALWAYS = "always"
+    SAVE_MODE_ASK = "ask"
+    SAVE_MODE_NEVER = "never"
+    VALID_SAVE_MODES = [SAVE_MODE_ALWAYS, SAVE_MODE_ASK, SAVE_MODE_NEVER]
+
+    class Keys(Enum):
+        OFFLINE_SAVE_MODE = "offline_save_mode"
+        ONLINE_SAVE_MODE = "online_save_mode"
+        SAVE_DIRECTORY = "save_directory"
+
+        @property
+        def default_value(self):
+            """Returns the default value for the key"""
+            default_lookup = {
+                self.OFFLINE_SAVE_MODE: "always",
+                self.ONLINE_SAVE_MODE: "always",
+                self.SAVE_DIRECTORY: "",  # empty = default folder
+            }
+            return default_lookup[self]
+
+    def __init__(self, filename: str = DEFAULT_CONFIG_FILENAME):
+        self.e_pgn_config_updated = Event()
+        super().__init__(section_name="pgn", section_keys=self.Keys, filename=filename)
+
+    def get_value(self, key: Enum) -> str:
+        """Gets the value, resets bad save modes to default"""
+        value = super().get_key_value(self.section_name, key.name, False)
+
+        if key == self.Keys.OFFLINE_SAVE_MODE or key == self.Keys.ONLINE_SAVE_MODE:
+            if value is None:
+                value = ""
+            value = value.lower()
+
+            is_valid = False
+            for mode in self.VALID_SAVE_MODES:
+                if mode == value:
+                    is_valid = True
+
+            if is_valid:
+                return value
+            else:
+                log.error(f"Invalid PGN save mode ({value}) found for {key.name}, resetting to default")
+                super().set_value(key, key.default_value)
+                return key.default_value
+
+        if value is None:
+            return ""
+        return value
+
+    def get_save_mode(self, is_online: bool) -> str:
+        """Gets save mode for online or offline"""
+        if is_online:
+            save_mode = self.get_value(self.Keys.ONLINE_SAVE_MODE)
+        else:
+            save_mode = self.get_value(self.Keys.OFFLINE_SAVE_MODE)
+        return save_mode
+
+    def set_save_mode(self, is_online: bool, save_mode: str) -> None:
+        """Sets save mode for online or offline"""
+        save_mode = save_mode.strip().lower()
+        if save_mode not in self.VALID_SAVE_MODES:
+            log.error(f"Invalid PGN save mode: {save_mode}")
+            return
+
+        if is_online:
+            self.set_value(self.Keys.ONLINE_SAVE_MODE, save_mode)
+        else:
+            self.set_value(self.Keys.OFFLINE_SAVE_MODE, save_mode)
+
+    def write_config(self) -> None:
+        """Writes to the configuration file"""
+        super().write_config()
+        self.e_pgn_config_updated.notify()
+
+
 player_info_config = PlayerInfoConfig()
 game_config = GameConfig()
 terminal_config = TerminalConfig()
 lichess_config = LichessConfig()
+pgn_config = PgnConfig()

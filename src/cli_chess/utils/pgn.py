@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional
 
 import chess
 
-from cli_chess.utils.config import get_config_path
+from cli_chess.utils.config import get_config_path, pgn_config
 from cli_chess.utils.logging import log
 
 if TYPE_CHECKING:
@@ -18,9 +18,91 @@ if TYPE_CHECKING:
 _STANDARD_START_FEN = chess.STARTING_FEN
 _FILENAME_SAFE = re.compile(r"[^A-Za-z0-9._-]+")
 
+# for --no-save-pgn
+_skip_pgn_saving_this_session = False
+
+
+def set_skip_pgn_for_session(skip: bool) -> None:
+    """Turns off pgn saving for this session only"""
+    global _skip_pgn_saving_this_session
+    if skip:
+        _skip_pgn_saving_this_session = True
+        log.info("PGN saving disabled for this session (--no-save-pgn)")
+    else:
+        _skip_pgn_saving_this_session = False
+
+
+def is_pgn_saving_skipped_for_session() -> bool:
+    """Returns True if saving is off this session"""
+    if _skip_pgn_saving_this_session:
+        return True
+    else:
+        return False
+
+
+def get_default_pgn_save_dir() -> str:
+    """Returns default games folder"""
+    return os.path.join(get_config_path(), "games")
+
+
+def _is_usable_dir(path: str) -> bool:
+    """Checks if we can save to this folder"""
+    if not path:
+        return False
+
+    if os.path.exists(path):
+        if os.path.isdir(path):
+            if os.access(path, os.W_OK):
+                return True
+            else:
+                log.error(f"PGN save directory is not writable: {path}")
+                return False
+        else:
+            log.error(f"PGN save directory is a file, not a folder: {path}")
+            return False
+
+    # try making it
+    try:
+        os.makedirs(path, exist_ok=True)
+        return True
+    except OSError as e:
+        log.error(f"Unable to create PGN save directory {path}: {e}")
+        return False
+
 
 def get_pgn_save_dir() -> str:
-    return os.path.join(get_config_path(), "games")
+    """Returns the pgn save folder. Uses default if custom one doesnt work"""
+    default_dir = get_default_pgn_save_dir()
+    custom_dir = pgn_config.get_value(pgn_config.Keys.SAVE_DIRECTORY)
+
+    if custom_dir is None or custom_dir.strip() == "":
+        return default_dir
+
+    # for ~ and $HOME
+    custom_dir = os.path.expanduser(os.path.expandvars(custom_dir.strip()))
+
+    if _is_usable_dir(custom_dir):
+        return custom_dir
+    else:
+        log.warning(f"Falling back to the default PGN save directory: {default_dir}")
+        return default_dir
+
+
+def get_pgn_save_mode(is_online: bool) -> str:
+    """Returns always, ask, or never"""
+    if is_pgn_saving_skipped_for_session():
+        return pgn_config.SAVE_MODE_NEVER
+
+    save_mode = pgn_config.get_save_mode(is_online)
+    if save_mode == pgn_config.SAVE_MODE_ALWAYS:
+        return pgn_config.SAVE_MODE_ALWAYS
+    elif save_mode == pgn_config.SAVE_MODE_ASK:
+        return pgn_config.SAVE_MODE_ASK
+    elif save_mode == pgn_config.SAVE_MODE_NEVER:
+        return pgn_config.SAVE_MODE_NEVER
+    else:
+        # shouldnt happen
+        return pgn_config.SAVE_MODE_ALWAYS
 
 
 def _slug(value: Optional[str], fallback: str) -> str:
